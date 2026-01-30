@@ -1,10 +1,5 @@
----
-layout: post
-title: Good Practices to Localize Your Game
-date: 2021-01-14 20:32:20 +0300
-img: localization.jpg 
-tags: [C#, Tools, Python, AWS, Unity]
----
+> Note: This repository is primarily for personal documentation.
+> The README serves as a detailed record of design decisions, experiments, and implementation choices made during development.
 
 
 # Good Practices to Localize Your Game
