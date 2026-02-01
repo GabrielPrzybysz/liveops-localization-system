@@ -90,6 +90,75 @@ Anyone on the internet with this link can view:
 
 ![](https://lh6.googleusercontent.com/4ed_eI57uWsbln_ic4WhZh0qcY1d9jIdj-kNqhMRDtmrrlSvpQwo5dqHNV1T6GiJGtF5QbTGmA0XbuK7OWJsBcgIHIQZLU4sKB_D1xdSzrlI9PMapZ5Y8FXKXtjIoLPA_tBvU3dt)
 
+# CSV File Format
+
+**How We Use CSV Files**
+
+CSV (Comma-Separated Values) files are the core data format in our localization system. They serve as the bridge between Google Sheets (where translators work) and our game (where localized text is displayed). The CSV file is automatically generated from Google Sheets and flows through our system as follows:
+
+1. **Google Sheets → CSV Export**: Google Sheets exports the spreadsheet as a CSV file using the Google Sheets API (`/gviz/tq?tqx=out:csv` endpoint)
+2. **AWS Lambda Processing**: The Lambda function downloads this CSV and stores it in AWS S3
+3. **Unity Download**: The Unity game downloads the CSV from S3 at runtime
+4. **CSV Parsing**: The CSVHelper library parses the CSV into localization data structures
+
+**CSV Structure**
+
+The CSV file follows a strict column-based structure without headers:
+
+| Column Index | Column Name | Description | Example |
+|--------------|-------------|-------------|---------|
+| 0 | KEY | Unique identifier for the localized text | `menu_start`, `dialog_welcome_01` |
+| 1 | en | English translation | `Start Game` |
+| 2 | pt | Portuguese translation | `Começar Jogo` |
+| 3 | es | Spanish translation | `Comenzar Juego` |
+
+**Example CSV Content:**
+```csv
+menu_start,Start Game,Começar Jogo,Comenzar Juego
+menu_options,Options,Opções,Opciones
+menu_quit,Quit,Sair,Salir
+dialog_welcome_01,Welcome to the game!,Bem-vindo ao jogo!,¡Bienvenido al juego!
+```
+
+**Important CSV Requirements**
+
+1. **No Header Row**: The CSV configuration uses `HasHeaderRecord = false`. The first row contains actual data, not column names.
+
+2. **Comma Delimiter**: Fields are separated by commas (`,`). This is enforced in the parser configuration.
+
+3. **Four Columns Required**: Every row must have exactly 4 columns (KEY, en, pt, es). Missing columns will cause parsing errors.
+
+4. **No Empty Cells**: All cells must have content. Empty cells cause parsing issues and are highlighted in red using Google Sheets conditional formatting.
+
+5. **Line Break Handling**: Use `\n` instead of actual line breaks (Enter key) within cells. Actual line breaks will break the CSV format.
+
+6. **No Leading/Trailing Spaces**: Cells should not have spaces at the beginning or end, as these are flagged by conditional formatting and may cause unexpected behavior.
+
+**How the CSV is Parsed**
+
+The Unity C# code uses CsvHelper library with this configuration:
+
+```csharp
+CsvConfiguration csvConfiguration = new CsvConfiguration(CultureInfo.CurrentCulture)
+{
+    HasHeaderRecord = false,  // No header row
+    Delimiter = ","           // Comma-separated
+};
+```
+
+Each row is mapped to a `CSVContent` class:
+```csharp
+public class CSVContent
+{
+    [Index(0)] public string KEY { get; set; }
+    [Index(1)] public string en { get; set; }
+    [Index(2)] public string pt { get; set; }
+    [Index(3)] public string es { get; set; }
+}
+```
+
+The CSV data is then loaded into a dictionary where the KEY becomes the lookup key, and a `LocalizationItem` object stores all language translations.
+
 
 # Creating Bucket on AWS
 This AWS bucket stores the Localization .csv. This .csv comes from a Lambda that we will create in the future, which will feed on our Google Sheets spreadsheet and save the .csv here!
